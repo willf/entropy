@@ -163,6 +163,34 @@ func TestRead(t *testing.T) {
 	}
 }
 
+func TestReadInvalidLines(t *testing.T) {
+	lines := `hey
+boy
+i
+forgot
+the
+counts
+`
+	reader := strings.NewReader(lines)
+	model := Read(reader)
+	if model.Size != 0 {
+		t.Errorf("Didn't get the size right, expected 0, got %v", model.Size)
+	}
+	p := model.Predict("01234")
+	if p.Text != "01234" {
+		t.Errorf("Forgot to copy text, expected 01234, got %v", p.Text)
+	}
+	if p.LogProbTotal != math.Log(0) {
+		t.Errorf("Should be infinite LogProbTotal,  got %v", p.LogProbTotal)
+	}
+	if p.LogProbAverage != math.Log(0) {
+		t.Errorf("Should be infinite LogProbAverage,  got %v", p.LogProbAverage)
+	}
+	if p.NumberOfNGrams != 6 {
+		t.Errorf("Forgot to set number of ngrams,  got %v", p.NumberOfNGrams)
+	}
+}
+
 func TestTrain(t *testing.T) {
 	lines := `1. Woody Guthrie
   2. The Weavers
@@ -190,6 +218,68 @@ func TestTrain(t *testing.T) {
 	}
 	if p.LogProbAverage >= 0 {
 		t.Errorf("Forg.ot to calc LogProbAverage,  got %v", p.LogProbAverage)
+	}
+	if p.NumberOfNGrams != 3 {
+		t.Errorf("Forgot to set number of ngrams,  got %v", p.NumberOfNGrams)
+	}
+}
+
+func TestTrainWithMultiplier(t *testing.T) {
+	lines := `,	27957346221
+the	23688414489
+.	19194317252
+of	15342397280
+and	11021132912
+to	9494905988
+in	7611765281
+a	7083003595
+"	4430963121
+is	4139526351
+`
+	reader := strings.NewReader(lines)
+	model := New(2)
+	model.TrainWithMultiplier(reader)
+	if model.Size != 2 {
+		t.Errorf("Didn't get the size right, expected 2, got %v", model.Size)
+	}
+	p := model.Predict("Paul")
+	if p.Text != "Paul" {
+		t.Errorf("Forgot to copy text, expected Paul, got %v", p.Text)
+	}
+	if p.LogProbTotal >= 0 {
+		t.Errorf("Forgot to calc LogProbTotal,  got %v", p.LogProbTotal)
+	}
+	if p.LogProbAverage >= 0 {
+		t.Errorf("Forg.ot to calc LogProbAverage,  got %v", p.LogProbAverage)
+	}
+	if p.NumberOfNGrams != 3 {
+		t.Errorf("Forgot to set number of ngrams,  got %v", p.NumberOfNGrams)
+	}
+}
+
+func TestTrainWithMultiplierBadLines(t *testing.T) {
+	lines := `hey
+girl
+i
+forgot
+the
+counts
+`
+	reader := strings.NewReader(lines)
+	model := New(2)
+	model.TrainWithMultiplier(reader)
+	if model.Size != 2 {
+		t.Errorf("Didn't get the size right, expected 2, got %v", model.Size)
+	}
+	p := model.Predict("Paul")
+	if p.Text != "Paul" {
+		t.Errorf("Forgot to copy text, expected Paul, got %v", p.Text)
+	}
+	if p.LogProbTotal < 0 {
+		t.Errorf("Should be infinite LogProbTotal,  got %v", p.LogProbTotal)
+	}
+	if p.LogProbAverage < 0 {
+		t.Errorf("Should be infinite LogProbAverage,  got %v", p.LogProbAverage)
 	}
 	if p.NumberOfNGrams != 3 {
 		t.Errorf("Forgot to set number of ngrams,  got %v", p.NumberOfNGrams)

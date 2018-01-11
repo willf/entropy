@@ -33,9 +33,15 @@ type Prediction struct {
 
 // Update updates the counter for a newly seen string
 func (counter *NGramCounter) Update(line string) {
+	counter.UpdateWithMultiplier(line, 1)
+}
+
+// UpdateWithMultiplier updates the counter for a string, using
+// a multiplier
+func (counter *NGramCounter) UpdateWithMultiplier(line string, multiplier uint64) {
 	for _, key := range sliding([]rune(line), counter.Size) {
-		counter.Counts[string(key)] += 1.0
-		counter.Total += 1.0
+		counter.Counts[string(key)] += multiplier
+		counter.Total += multiplier
 	}
 }
 
@@ -68,8 +74,13 @@ func New(MaxNGramSize int) (model *Model) {
 
 // Update for Models send string to each counter
 func (model *Model) Update(line string) {
+	model.UpdateWithMultiplier(line, 1)
+}
+
+// UpdateWithMultiplier for Models send string to each counter with multiplier
+func (model *Model) UpdateWithMultiplier(line string, multiplier uint64) {
 	for _, counter := range model.Map {
-		counter.Update(line)
+		counter.UpdateWithMultiplier(line, multiplier)
 	}
 }
 
@@ -179,6 +190,25 @@ func (model *Model) Train(f io.Reader) (exampleCount int) {
 		text := sc.Text()
 		exampleCount++
 		model.Update(text)
+	}
+	return
+}
+
+// TrainWithMultiplier trains a set of ngram models from a file. Models must be
+// initialized. returns the number of example lines used.
+// format is token <tab> count
+func (model *Model) TrainWithMultiplier(f io.Reader) (exampleCount int) {
+	sc := bufio.NewScanner(f)
+	for sc.Scan() {
+		text := sc.Text()
+		exampleCount++
+		var ngram string
+		var count uint64
+		_, err := fmt.Sscanf(text, "%s\t%d", &ngram, &count)
+		if err != nil {
+			fmt.Printf("Invalid line at %v: %v\n", exampleCount, text)
+		}
+		model.UpdateWithMultiplier(text, count)
 	}
 	return
 }
