@@ -11,7 +11,15 @@ This learns a n-gram model on a set of strings, and then can predict
 the entropy of other strings.
 
 For example, it has been noted that (good) passwords have high entropy,
-and we should be able to use that fact to find (good) passwords in code (where they shoudn't be).
+and we should be able to use that fact to find (good) passwords in code (where they shoudln't be).
+
+To build the executable (make the output directory anything you want)
+
+```bash
+go build -o bin/string_entropy cmd/string_entropy/string_entropy.go
+```
+
+You can do a similar build for `create_google_books_ngram_model.go`
 
 To train:
 
