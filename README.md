@@ -1,6 +1,6 @@
 # Entropy
 
-[![Master Build Status](https://secure.travis-ci.org/willf/entropy.png?branch=master)](https://travis-ci.org/willf/entropy?branch=master)
+[![Build Status](https://travis-ci.org/willf/entropy.svg?branch=master)](https://travis-ci.org/willf/entropy)
 [![Coverage Status](https://coveralls.io/repos/github/willf/entropy/badge.svg?branch=master)](https://coveralls.io/github/willf/entropy?branch=master)
 [![Go Report Card](https://goreportcard.com/badge/github.com/willf/entropy)](https://goreportcard.com/report/github.com/willf/entropy)
 [![GoDoc](https://godoc.org/github.com/willf/entropy?status.svg)](http://godoc.org/github.com/willf/entropy)
