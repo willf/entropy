@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"strings"
 )
 
 // NGramCounter contains counts and totals for Ngrams of a
@@ -57,18 +58,15 @@ func (counter *NGramCounter) Count(key string, ifNotFound uint64) (count uint64)
 
 // Model contains a max size and a map from its to character models
 type Model struct {
-	Size int
-	Map  map[int]*NGramCounter
+	Size    int
+	Counter *NGramCounter
 }
 
 // New creates a Model with maximum ngram size of `MaxNGramSize`
 func New(MaxNGramSize int) (model *Model) {
 	model = new(Model)
 	model.Size = MaxNGramSize
-	model.Map = make(map[int]*NGramCounter)
-	for key := 1; key <= MaxNGramSize; key++ {
-		model.Map[key] = NewNGramCounter(key)
-	}
+	model.Counter = NewNGramCounter(MaxNGramSize)
 	return
 }
 
@@ -79,9 +77,7 @@ func (model *Model) Update(line string) {
 
 // UpdateWithMultiplier for Models send string to each counter with multiplier
 func (model *Model) UpdateWithMultiplier(line string, multiplier uint64) {
-	for _, counter := range model.Map {
-		counter.UpdateWithMultiplier(line, multiplier)
-	}
+	model.Counter.UpdateWithMultiplier(line, multiplier)
 }
 
 // LogProb returns the best matching log probability for a key given
@@ -91,37 +87,26 @@ func (model *Model) LogProb(key string) (logProb float64) {
 		logProb = math.Inf(-1)
 		return
 	}
-	var lastTotal uint64
-	// find the table that is the same size as the key
-	// looking at increasing shorter suffixes
-	// e.g. abc, bc, c
-	runes := []rune(key)
-	for i := 0; i < len(runes); i++ {
-		key := string(runes[i:])
-		counter, foundCounter := model.Map[len(key)]
-		if foundCounter {
-			count := counter.Count(key, 0.0)
-			if count > 0.0 {
-				logProb = math.Log2(float64(count)) - math.Log2(float64(counter.Total))
-				return
-			}
-			lastTotal = counter.Total
-		}
+	counter := model.Counter
+	count := counter.Count(key, 0)
+	if count == 0 {
+		logProb = math.Log2(0.5) - math.Log2(float64(counter.Total))
+	} else {
+		logProb = math.Log2(float64(count)) - math.Log2(float64(counter.Total))
 	}
-	// found it nowhere ... use last Total, and '1 count'
-	logProb = math.Log2(1.0) - math.Log2(float64(lastTotal))
+
 	return
 }
 
 // Dump sends a set of ngram models to a writer
 func (model *Model) Dump(f io.Writer) {
-	for sz, counter := range model.Map {
-		for key, value := range counter.Counts {
-			outs := fmt.Sprintf("%v\t%s\t%d\n", sz, key, value)
-			_, err := f.Write([]byte(outs))
-			if err != nil {
-				panic(err)
-			}
+	counter := model.Counter
+	sz := model.Size
+	for key, value := range counter.Counts {
+		outs := fmt.Sprintf("%v\t%s\t%d\n", sz, key, value)
+		_, err := f.Write([]byte(outs))
+		if err != nil {
+			panic(err)
 		}
 	}
 }
@@ -151,8 +136,8 @@ func (model *Model) Predict(text string) (prediction *Prediction) {
 func Read(f io.Reader) (model *Model) {
 	model = new(Model)
 	scanner := bufio.NewScanner(f)
-	counterMap := make(map[int]*NGramCounter)
-	var maxSize int
+	var counter *NGramCounter
+	var ngramSize int
 	var linenum uint
 	for scanner.Scan() {
 		linenum++
@@ -164,21 +149,16 @@ func Read(f io.Reader) (model *Model) {
 		if err != nil {
 			fmt.Printf("Invalid line at %v: %v\n", linenum, text)
 		}
-
-		// fmt.Printf("size: %v, ngram: '%v', count: %v\n", size, ngram, count)
-		counter, ok := counterMap[size]
-		if !ok {
-			counter = NewNGramCounter(size)
-			counterMap[size] = counter
+		if ngramSize == 0 {
+			ngramSize = size
+			counter = NewNGramCounter(ngramSize)
 		}
+		// fmt.Printf("size: %v, ngram: '%v', count: %v\n", size, ngram, count)
 		counter.Total += count
 		counter.Counts[ngram] = count
-		if size > maxSize {
-			maxSize = size
-		}
 	}
-	model.Size = maxSize
-	model.Map = counterMap
+	model.Size = ngramSize
+	model.Counter = counter
 	return
 }
 
@@ -189,7 +169,7 @@ func (model *Model) Train(f io.Reader) (exampleCount int) {
 	for sc.Scan() {
 		text := sc.Text()
 		exampleCount++
-		model.Update(text)
+		model.Update(strings.TrimSpace(text))
 	}
 	return
 }
