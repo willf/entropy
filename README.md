@@ -11,7 +11,7 @@ This learns a n-gram model on a set of strings, and then can predict
 the entropy of other strings.
 
 For example, it has been noted that (good) passwords have high entropy,
-and we should be able to use that fact to find (good) passwords in code (where they shoudln't be).
+and we should be able to use that fact to find (good) passwords in code (where they shouldn't be).
 
 To build the executable (make the output directory anything you want)
 
