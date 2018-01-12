@@ -45,7 +45,7 @@ func TestNewModel(t *testing.T) {
 	if m.Size != 3 {
 		t.Error("Didn't create a new model")
 	}
-	if len(m.Map) != 3 {
+	if m.Counter.Size != 3 {
 		t.Error("Didn't create a new model")
 	}
 }
@@ -53,7 +53,7 @@ func TestNewModel(t *testing.T) {
 func TestModelUpdate(t *testing.T) {
 	m := New(3)
 	m.Update("01234")
-	if m.Map[3].Total != 3.0 {
+	if m.Counter.Total != 3.0 {
 		t.Error("update failed")
 	}
 }
@@ -92,8 +92,8 @@ func TestDump(t *testing.T) {
 	got := b.String()
 	// fmt.Println(got)
 	n := strings.Count(got, "\n")
-	if n != 12 {
-		t.Errorf("Expected 12 lines 5+4+3, but got %v", n)
+	if n != 3 {
+		t.Errorf("Expected 3, but got %v", n)
 	}
 }
 
@@ -122,27 +122,31 @@ func TestPredict(t *testing.T) {
 	}
 }
 
+func TestEntropy(t *testing.T) {
+	m := New(2)
+	m.Update("01234")
+	e := m.Entropy("01")
+	if e <= 0 {
+		t.Errorf("Forgot to calc Entropy,  got %v", e)
+	}
+	e = m.Entropy("")
+	if e != 0 {
+		t.Errorf("Forgot to calc Entropy,  got %v", e)
+	}
+}
+
 func TestRead(t *testing.T) {
-	lines := `2	23	1
-2	34	1
-2	01	1
-2	12	1
-3	012	1
+	lines := `3	012	1
 3	123	1
 3	234	1
-1	1	1
-1	2	1
-1	3	1
-1	4	1
-1	0	1
 `
 	reader := strings.NewReader(lines)
 	model := Read(reader)
 	if model.Size != 3 {
 		t.Errorf("Didn't get the size right, expected 3, got %v", model.Size)
 	}
-	if len(model.Map) != 3 {
-		t.Errorf("Didn't create three counters, got %v", len(model.Map))
+	if model.Counter.Size != 3 {
+		t.Errorf("Didn't create three counters, got %v", model.Counter.Size)
 	}
 	// var b bytes.Buffer
 	// model.Dump(&b)

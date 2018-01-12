@@ -132,6 +132,11 @@ func (model *Model) Predict(text string) (prediction *Prediction) {
 	return
 }
 
+func (model *Model) Entropy(text string) (entropy float64) {
+	entropy = -model.Predict(text).LogProbAverage
+	return
+}
+
 // Read reads a model in
 func Read(f io.Reader) (model *Model) {
 	model = new(Model)
